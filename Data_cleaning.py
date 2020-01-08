@@ -21,7 +21,7 @@ import numpy as np
 import re
 
 #Importing the dataset into dataframes
-dataset = pd.read_csv('Million_song_dataset.csv').drop('Unnamed: 0',axis = 1)
+dataset = pd.read_csv('Million_song_dataset.csv').drop(['Unnamed: 0.1','Unnamed: 0'],axis = 1)
 df_bb = pd.read_csv('Billboard_top100.csv').drop('Unnamed: 0',axis = 1)
 df_y = pd.read_csv('Years.csv').drop('Unnamed: 0',axis = 1)
 df_y['Title'] = df_y['Title'].apply(lambda x: re.sub('[^0-9a-zA-Z\s]','',str(x)))
@@ -44,14 +44,15 @@ def hits(data):
         return 1
     else:
         return 0
+new = pd.read_csv('Million.csv').drop('Unnamed: 0',axis=1)
+dataset['song_hotttnesss'] = dataset['song_hotttnesss'].fillna(0) 
 
 for i in range(0,len(dataset['song_hotttnesss'])):
-    if dataset['song_hotttnesss'][i]< 0.5:
+    if dataset['song_hotttnesss'][i]< 0.75:
         dataset['song_hotttnesss'][i] = 0
-    elif (dataset['song_hotttnesss'][i] >= 0.5):
+    elif (dataset['song_hotttnesss'][i] >= 0.75):
         dataset['song_hotttnesss'][i] = 1
-
-dataset['song_hotttnesss'] = dataset['song_hotttnesss'].fillna(0)                
+             
 df_comp = pd.DataFrame(dataset[dataset['song_hotttnesss']==0]['title'])
 df_comp['song_hottness'] = df_comp.apply(hits,axis = 1)
 df_comp = df_comp[df_comp['song_hottness']==1]
@@ -315,8 +316,12 @@ for i in l1:
     
 fill('tatums_start')
 dataset.to_csv('Million_song_dataset.csv')
-new = pd.read_csv('Million_song_dataset.csv')
-    
 
+"""
+import pandas as pd
+new = pd.read_csv("Million.csv")
+dataset['song_hotttnesss'] = new['song_hotttnesss']
+dataset['tatums_start'].value_counts()    
+"""
 
  
