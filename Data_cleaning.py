@@ -4,7 +4,8 @@ Created on Wed Jun 19 12:11:34 2019
 
 @author: Ritwik Gupta
 """
-#Function to apply regx
+
+#Function to apply regx to the columns
 def b2s(value):
     value = re.sub(r"^b'",'',value)
     value = re.sub(r'^b','',value)
@@ -19,49 +20,47 @@ def b2s(value):
 import pandas as pd
 import numpy as np
 import re
+import os
+
+#Locating to the working directory
+#os.chdir("/home/ritwik/Desktop/Project/Datasets")
 
 #Importing the dataset into dataframes
-dataset = pd.read_csv('Million_song_dataset.csv').drop(['Unnamed: 0.1','Unnamed: 0'],axis = 1)
+dataset = pd.read_csv('Million.csv').drop(['Unnamed: 0'],axis = 1)
 df_bb = pd.read_csv('Billboard_top100.csv').drop('Unnamed: 0',axis = 1)
 df_y = pd.read_csv('Years.csv').drop('Unnamed: 0',axis = 1)
+
+#Cleaning the columns
 df_y['Title'] = df_y['Title'].apply(lambda x: re.sub('[^0-9a-zA-Z\s]','',str(x)))
 df_y.to_csv('Years.csv')
-#Stripping [] and b''
+
+
+#Stripping [] and b'' (as it was store in byte)
 for col in dataset:
     if dataset[col].dtype==object:
         dataset[col]=dataset[col].str.replace("b'","")
         dataset[col]=dataset[col].str.replace("'","")
         dataset[col]=dataset[col].str.strip('[]')
 
-#Cleaning the title column of billboard dataset
+
+#Cleaning the title column of datasets
 df_bb['Title'] = df_bb['Title'].apply(lambda x:b2s(x))
 df_bb['Title']= df_bb['Title'].drop_duplicates(keep='first')
 df_bb = df_bb.dropna()
+dataset['title'] = dataset['title'].apply(lambda x:b2s(x))
 
-#Recreating the hotness column
+#Recreating the hotness column , adding more data
 def hits(data):
     if data['title'] in list(df_bb['Title']):
         return 1
     else:
         return 0
-new = pd.read_csv('Million.csv').drop('Unnamed: 0',axis=1)
-dataset['song_hotttnesss'] = dataset['song_hotttnesss'].fillna(0) 
 
-for i in range(0,len(dataset['song_hotttnesss'])):
-    if dataset['song_hotttnesss'][i]< 0.75:
-        dataset['song_hotttnesss'][i] = 0
-    elif (dataset['song_hotttnesss'][i] >= 0.75):
-        dataset['song_hotttnesss'][i] = 1
-             
-df_comp = pd.DataFrame(dataset[dataset['song_hotttnesss']==0]['title'])
-df_comp['song_hottness'] = df_comp.apply(hits,axis = 1)
-df_comp = df_comp[df_comp['song_hottness']==1]
+#hot = pd.read_csv('hot.csv').drop(['Unnamed: 0'],axis = 1)
 
-for i in range(0,10000):
-    if dataset['title'][i] in list(df_comp['title']):
-        dataset['song_hotttnesss'][i] = 1
-        
-#dataset['song_hotttnesss'].value_counts()
+#fill the nan values with median of the column
+#hot['song_hotttnesss'] = hot['song_hotttnesss'].fillna(hot['song_hotttnesss'].median()) 
+
 """
 l1 = dataset['artist_terms_freq'].str.replace(r"1.",'')
 l2 = l1.str.strip(" ")
@@ -76,7 +75,8 @@ dataset['artist_terms_weight'] = l2
 count = []
 beats = []
 def mean(value,i):
-    dataset[value][i] = np.mean(np.array(str(dataset[value][i]).split()).astype(np.float)) 
+    dataset[value][i] = np.mean(np.array(str(dataset[value][i]).split()).astype(np.float))
+    #dataset[value][i] = np.median(np.array(str(dataset[value][i]).split()).astype(np.float)) 
 def zero(value,i):
     dataset[value][i] = str(dataset[value][i]).replace("0.  ","0.0")
 def dot(value,i):
@@ -104,6 +104,8 @@ for i in(beats):
         beats.append(i)
 fill('beats_confidence')
 
+dataset['beats_confidence'].isnull().value_counts()
+
 
 #Check for ... in beats and bar confidence
 for i in(count):
@@ -114,6 +116,8 @@ for i in(count):
     except:
         count.append(i)
 fill('bars_confidence')
+
+dataset['bars_confidence'].isnull().value_counts()
 
 #Bar and beats_start
 for i in range(len(dataset)):
@@ -128,11 +132,17 @@ for i in range(len(dataset)):
         beats.append(i)
 
 for i in count:
-    dot('bars_start',i)
-    mean('bars_start',i)
+    try:
+        dot('bars_start',i)
+        mean('bars_start',i)
+    except:
+        mean('bars_start',i)
 for i in beats:
-    dot('beats_start',i)
-    mean('beats_start',i)
+    try:
+        dot('beats_start',i)
+        mean('beats_start',i)
+    except:
+        mean('beats_start',i)
 
 fill('beats_start')
 fill('bars_start')
@@ -174,6 +184,8 @@ for i in range(len(dataset)):
 fill('sections_start')
 fill('sections_confidence')
 
+count=[]
+beats = []
 #Segments 
 for i in range(len(dataset)):
     try:    
@@ -195,6 +207,9 @@ for i in(count):
         
 fill('segments_confidence')
 fill('segments_loudness_max')
+
+count=[]
+beats = []
     
 for i in range(len(dataset)):
     try:    
@@ -209,6 +224,9 @@ for i in(beats):
     except:
         count.append(i)
 fill('segments_loudness_max_time')
+
+count=[]
+beats = []
 
 for i in range(len(dataset)):
     try:    
@@ -240,7 +258,7 @@ for i in(beats):
         zero('segments_pitches',i)
         mean('segments_pitches',i)
     except:
-        beats.append(i)
+        count.append(i)
 fill('segments_pitches')
 
 
@@ -313,15 +331,7 @@ for i in(beats):
 l1 = list(dataset[dataset['tatums_start']==2].index)
 for i in l1:
     dataset['tatums_start'][i] = np.NaN
-    
+
 fill('tatums_start')
 dataset.to_csv('Million_song_dataset.csv')
 
-"""
-import pandas as pd
-new = pd.read_csv("Million.csv")
-dataset['song_hotttnesss'] = new['song_hotttnesss']
-dataset['tatums_start'].value_counts()    
-"""
-
- 
