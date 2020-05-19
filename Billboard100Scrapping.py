@@ -4,11 +4,16 @@ Created on Tue Jun 18 10:50:27 2019
 
 @author: Ritwik Gupta
 """
+
+
+##### Getting the data from billboard archive #####
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+import os
 
 col = ['Artist','Title','Year']
 dataframe = pd.DataFrame()
@@ -30,6 +35,8 @@ for i in range(1947,2013):
     col_data = OrderedDict(zip(col,[artist,song_title,year]))
     df = pd.DataFrame(col_data)
     dataframe = dataframe.append(df)
-#dataframe = dataframe.drop_duplicates(keep = False)
-dataframe.to_csv(r'E:\Study Material\Machine Learning\Project\Billboard_top100_1.csv')
+dataframe.encode('UTF-8')
+
+os.chdir('Datasets')
+dataframe.to_csv('Billboardtop100.csv')
     
