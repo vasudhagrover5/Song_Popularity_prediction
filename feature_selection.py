@@ -1,56 +1,62 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 23 14:38:22 2019
-
-@author: Ritwik Gupta
-"""
 #Importing the dataset using Pandas
 import pandas as pd
 import numpy as np
-dataset = pd.read_csv('Million_song_dataset.csv').drop('Unnamed: 0',axis=1)
+dataset = pd.read_csv('Datasets/Million_final.csv').drop('Unnamed: 0',axis=1)
 
 #Checking for null values in the dataset
 l1 = {}
 for item in dataset:
     l1[item] = dataset[item].isnull().value_counts()
-#Temprory feature variable 
 
-f1  = dataset.drop(['danceability','energy','analysis_sample_rate','artist_7digitalid','artist_latitude','artist_longitude','song_id','track_7digitalid','track_id','transfer_note','artist_id','artist_mbid','artist_playmeid','artist_mbtags','artist_mbtags_count','audio_md5','release_7digitalid','similar_artists','title','song_hotttnesss','artist_terms','artist_terms_freq','artist_terms_weight','segments_timbre','release','artist_location','artist_name'],axis=1)
-
-features = pd.read_csv('Feature_List.csv').drop('Unnamed: 0',axis=1)
-features.columns = f1.columns
+features = pd.read_csv('Datasets/Feature_List.csv').drop('Unnamed: 0',axis=1)
 features.info()
 labels = dataset['song_hotttnesss']
 
+# Scale the features in the range 0-1
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()  
 scaled_f = sc.fit_transform(features)  
-
 features = pd.DataFrame(scaled_f,columns=features.columns)
 
-"""
-from sklearn.ensemble import ExtraTreesClassifier
-import matplotlib.pyplot as plt
-model = ExtraTreesClassifier()
-model.fit(features,labels)
-print(model.feature_importances_) #use inbuilt class feature_importances of tree based classifiers
-#plot graph of feature importances for better visualization
-feat_importances = pd.Series(model.feature_importances_, index=features.columns)
-feat_importances.nlargest(20).plot(kind='barh')
-plt.show()
-
-"""
-
-
+#Feature Selection process
 from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
-rfe_selector = RFE(estimator=LogisticRegression(), n_features_to_select=20, step=10, verbose=5)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import RFECV
+import matplotlib.pyplot as plt
+
+#Detect the optimal number of features
+rfe_selector = RFECV(estimator=RandomForestClassifier(random_state=101), cv=StratifiedKFold(10), scoring='accuracy')
 rfe_selector.fit(features, labels)
+print('Optimal number of features: {}'.format(rfe_selector.n_features_))
+
+#Plot the no. of features and their accuracy
+opt = plt.figure(figsize=(16, 9))
+plt.title('Optimal Feature Detection', fontsize=18, fontweight='bold', pad=20)
+plt.xlabel('Number of features', fontsize=14, labelpad=20)
+plt.ylabel('Correct Classification Score', fontsize=14, labelpad=20)
+plt.plot(range(1, len(rfe_selector.grid_scores_) + 1), rfe_selector.grid_scores_, color='#303F9F', linewidth=3)
+plt.show()
+opt.savefig('Optimal_features.png')
+
+#Calculate the list of features
 rfe_support = rfe_selector.get_support()
 rfe_feature = features.loc[:,rfe_support].columns.tolist()
 print(str(len(rfe_feature)), 'selected features')
 
-features = features.loc[:,rfe_feature]
+#Creating a wordcloud of the selected features
+from wordcloud import WordCloud, STOPWORDS 
+stopwords = set(STOPWORDS)
+wc_features = ' '.join([str(elem) for elem in rfe_feature]) 
+wordcloud = WordCloud(width = 800, height = 800,background_color ='white',min_font_size = 10,stopwords=stopwords).generate(wc_features)
 
-features = features.drop(columns = ['danceability','energy','bars_start'],axis=1)
-features.to_csv('Features_List.csv')
+wc = plt.figure(figsize = (8, 8), facecolor = None) 
+plt.imshow(wordcloud) 
+plt.axis("off") 
+plt.tight_layout(pad = 0)   
+plt.show() 
+wc.savefig("Wordcloud.png")
+
+#Saving the modified features and the dataset
+features = features.loc[:,rfe_feature]
+features.to_csv('Datasets/Feature_List.csv')
